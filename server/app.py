@@ -4,6 +4,8 @@ import chromadb
 from chromadb.config import Settings
 import numpy as np
 from openai import OpenAI
+import json
+import datetime
 
 
 app = Flask(__name__)
@@ -21,6 +23,10 @@ collection_name = "my_vectors"
 collection = chroma_client.create_collection(name=collection_name)
 
 
+# client = OpenAI(
+#     # This is the default and can be omitted
+#     api_key="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"
+# )
 client = OpenAI(
     api_key="G78SOON3GRB6L8NOC50FJQI8N78U0PM4C41Y2SFD",
     base_url="https://api.runpod.ai/v2/vllm-1d0a3g9p6pjkn3/openai/v1",
@@ -126,6 +132,90 @@ def chatgpt():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+
+
+# Route to create a new room
+@app.route('/create_room', methods=['POST'])
+def create_room():
+    try:
+        data = request.json
+        room_id = data['room_id']
+        
+        # Create room with empty conversation list
+        redis_client.set(room_id, json.dumps([]))  # Using JSON list to store conversation
+        
+        return jsonify({"message": f"Room '{room_id}' created successfully."}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+# Route to append conversation to a room
+@app.route('/append_conversation', methods=['POST'])
+def append_conversation():
+    try:
+        data = request.json
+        room_id = data['room_id']
+        person_name = data['person_name']
+        text = data['text']
+        
+        # Get the current conversation from Redis
+        conversation = redis_client.get(room_id)
+        if conversation is None:
+            return jsonify({"error": f"Room '{room_id}' not found."}), 404
+
+        # Parse the conversation (it's stored as a JSON list)
+        conversation = json.loads(conversation)
+        
+        # Add new entry with timestamp
+        conversation_entry = {
+            "person_name": person_name,
+            "text": text,
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+        conversation.append(conversation_entry)
+        
+        # Save updated conversation back to Redis
+        redis_client.set(room_id, json.dumps(conversation))
+        
+        return jsonify({"message": "Conversation appended successfully."}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+# Route to generate summary from the conversation
+@app.route('/generate_summary', methods=['POST'])
+def generate_summary():
+    try:
+        data = request.json
+        room_id = data['room_id']
+        
+        # Get the conversation from Redis
+        conversation = redis_client.get(room_id)
+        if conversation is None:
+            return jsonify({"error": f"Room '{room_id}' not found."}), 404
+
+        # Parse the conversation (it's stored as a JSON list)
+        conversation = json.loads(conversation)
+        
+        # Prepare prompt for the LLM (concatenate all messages)
+        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+        prompt = f"Summarize the following conversation:\n\n{conversation_text}"
+        
+        # Query LLM for the summary
+        models = client.models.list()
+        model_gpt = models.data[0].id
+        
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            model=model_gpt,
+        )
+        
+        summary = response.choices[0].message.content.strip()
+        
+        return jsonify({"summary": summary}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
