@@ -6,6 +6,8 @@ import numpy as np
 from openai import OpenAI
 import json
 import datetime
+import PyPDF2  
+import uuid  
 
 
 app = Flask(__name__)
@@ -32,7 +34,14 @@ client = OpenAI(
     base_url="https://api.runpod.ai/v2/vllm-1d0a3g9p6pjkn3/openai/v1",
 )
 
-
+# Utility to extract text from a PDF file
+def extract_text_from_pdf(pdf_file):
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    text = ''
+    for page_num in range(len(pdf_reader.pages)):
+        page = pdf_reader.pages[page_num]
+        text += page.extract_text()
+    return text
 
 @app.route('/add_to_chroma', methods=['POST'])
 def add_to_chroma():
@@ -216,6 +225,55 @@ def generate_summary():
         return jsonify({"summary": summary}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+# Route for candidates to upload their resume (PDF), extract text, and store in ChromaDB
+@app.route('/upload_resume', methods=['POST'])
+def upload_resume():
+    try:
+        # Ensure a PDF is provided
+        if 'resume' not in request.files:
+            return jsonify({"error": "No resume file provided."}), 400
+        
+        # Extract text from the uploaded PDF file
+        pdf_file = request.files['resume']
+        extracted_text = extract_text_from_pdf(pdf_file)
+        
+        # Generate a vector embedding for the extracted text
+        vector = generate_embedding(extracted_text)
+        
+        # Generate a unique vector ID for this resume
+        vector_id = str(uuid.uuid4())
+        
+        # Store the vector and metadata in ChromaDB
+        metadata = {"resume_text": extracted_text}
+        collection.add(ids=[vector_id], embeddings=[vector], metadatas=[metadata])
+        
+        return jsonify({"message": "Resume uploaded and stored successfully.", "vector_id": vector_id}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+# Route for interviewers to submit a job description and get relevant candidates from ChromaDB
+@app.route('/recommend_candidates', methods=['POST'])
+def recommend_candidates():
+    try:
+        # Get the job description and number of results from the request body
+        data = request.json
+        job_description = data['job_description']
+        n_results = int(data.get('n_results', 5))  # Default to 5 candidates if not provided
+        
+        # Generate an embedding for the job description
+        job_vector = generate_embedding(job_description)
+        
+        # Query the ChromaDB to find the top N candidates
+        job_vector = np.array(job_vector).tolist()
+        results = collection.query(query_embeddings=[job_vector], n_results=n_results)
+        
+        # Return the candidates sorted by relevancy
+        return jsonify(results), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
