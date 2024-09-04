@@ -9,7 +9,11 @@ import { Skeleton } from "./ui/skeleton";
 import { huddleClient } from '@/pages/_app'
 import { useLocalAudio, useLocalVideo } from "@huddle01/react/hooks";
 
-export default function MediaPicker({ showMediaPicker }) {
+type Props = {
+  showMediaPicker: (show: boolean) => void
+}
+
+export default function MediaPicker({ showMediaPicker }: Props) {
   const [devices, refreshDevices] = useMediaDevices()
   const audioDevices = useMemo(() => {
     return devices.filter(({ kind }) => kind == 'audioinput')
