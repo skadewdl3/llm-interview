@@ -20,19 +20,7 @@ const VideoGrid: React.FC<Props> = ({ children: _children }) => {
     >
       <AnimatePresence>
         {
-          children.map((child, index) => (
-            <motion.div
-              key={index}
-              layout
-              layoutId={index}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.3 }}
-            >
-              {child}
-            </motion.div>
-          ))
+          children.map((child, index) => child)
         }
       </AnimatePresence>
     </div>

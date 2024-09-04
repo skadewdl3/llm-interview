@@ -1,11 +1,15 @@
 
 import {
+  useLocalPeer,
   useLocalScreenShare,
   useLocalVideo,
 } from '@huddle01/react/hooks';
+import { motion } from 'framer-motion';
 import React, { useEffect, useRef } from 'react';
 
 const LocalPeer = () => {
+
+  const { metadata } = useLocalPeer()
   const { stream } = useLocalVideo()
   const { shareStream } =
     useLocalScreenShare();
@@ -50,24 +54,44 @@ const LocalPeer = () => {
     }
   }, [shareStream]);
 
+  useEffect(() => {
+    console.log(metadata)
+  })
 
   return (
-    <div className="flex flex-col gap-2">
-      <video
-        ref={vidRef}
-        autoPlay
-        muted
-        className="border-2 rounded-xl border-white-400 aspect-video"
-      />
-      {shareStream && (
+    <>
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        transition={{ duration: 0.3 }}
+      >
         <video
-          ref={screenVideoRef}
+          ref={vidRef}
           autoPlay
           muted
-          className="border-2 rounded-xl border-white-400 aspect-video"
+          className="border-2 rounded-xl border-white-400 aspect-video w-full"
         />
+      </motion.div>
+
+      {shareStream && (
+        <motion.div
+          layout
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.3 }}
+        >
+          <video
+            ref={screenVideoRef}
+            autoPlay
+            muted
+            className="border-2 rounded-xl border-white-400 aspect-video"
+          />
+        </motion.div>
       )}
-    </div>
+    </>
   );
 };
 

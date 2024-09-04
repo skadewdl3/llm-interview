@@ -127,7 +127,7 @@ export default function Home({ token }: Props) {
             </VideoGrid>
             {state == 'connected' && <MeetingControls className="absolute bottom-2 left-1/2 -translate-x-1/2" />}
           </div>
-          {state === "connected" && <ChatBox />}
+          {/* {state === "connected" && <ChatBox />} */}
         </div>
         <div>
 

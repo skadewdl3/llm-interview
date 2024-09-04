@@ -1,8 +1,10 @@
 import {
   useRemoteAudio,
+  useRemotePeer,
   useRemoteScreenShare,
   useRemoteVideo,
 } from '@huddle01/react/hooks';
+import { motion } from 'framer-motion';
 import React, { useEffect, useRef } from 'react';
 
 type Props = {
@@ -10,6 +12,7 @@ type Props = {
 };
 
 const RemotePeer = ({ peerId }: Props) => {
+  // const { metadata } = useRemotePeer({ peerId })
   const { stream, state } = useRemoteVideo({ peerId });
   const { stream: audioStream, state: audioState } = useRemoteAudio({ peerId });
   const { videoStream: screenVideo, audioStream: screenAudio } =
@@ -92,25 +95,46 @@ const RemotePeer = ({ peerId }: Props) => {
     }
   }, [screenAudio]);
 
+  // useEffect(() => {
+  //   console.log(metadata)
+  // })
+
   return (
-    <div className="flex flex-col gap-2">
-      <video
-        ref={vidRef}
-        autoPlay
-        muted
-        className="border-2 rounded-xl border-white-400 aspect-video"
-      />
-      {screenVideo && (
+    <>
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        transition={{ duration: 0.3 }}
+      >
         <video
-          ref={screenVideoRef}
+          ref={vidRef}
           autoPlay
           muted
-          className="border-2 rounded-xl border-white-400 aspect-video"
+          className="border-2 rounded-xl border-white-400 aspect-video w-full"
         />
+      </motion.div>
+      {screenVideo && (
+
+        <motion.div
+          layout
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.3 }}
+        >
+          <video
+            ref={screenVideoRef}
+            autoPlay
+            muted
+            className="border-2 rounded-xl border-white-400 aspect-video"
+          />
+          {screenAudio && <audio ref={screenAudioRef} autoPlay></audio>}
+        </motion.div>
+
       )}
-      <audio ref={audioRef} autoPlay></audio>
-      {screenAudio && <audio ref={screenAudioRef} autoPlay></audio>}
-    </div>
+    </>
   );
 };
 
