@@ -3,7 +3,7 @@ import type { AppProps } from "next/app";
 
 import { HuddleClient, HuddleProvider } from "@huddle01/react";
 
-export const huddleClient = new HuddleClient({
+const huddleClient = new HuddleClient({
   projectId: "zMQHa6hH5hGrxfwYZp7z8I-1lWScI7UA",
   options: {
     activeSpeakers: {

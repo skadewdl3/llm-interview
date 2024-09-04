@@ -1,12 +1,11 @@
 import useMediaDevices from "@/hooks/useMediaDevices";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import { SlCamera as Camera } from "react-icons/sl";
 import { SlMicrophone as Microphone } from "react-icons/sl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardContent, CardTitle, CardHeader, CardDescription } from "./ui/card";
+import { Card, CardContent, CardTitle, CardHeader } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
-import { huddleClient } from '@/pages/_app'
 import { useLocalAudio, useLocalVideo } from "@huddle01/react/hooks";
 
 type Props = {
