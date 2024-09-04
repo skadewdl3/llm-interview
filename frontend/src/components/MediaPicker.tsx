@@ -9,10 +9,11 @@ import { Skeleton } from "./ui/skeleton";
 import { useLocalAudio, useLocalVideo } from "@huddle01/react/hooks";
 
 type Props = {
-  showMediaPicker: (show: boolean) => void
+  continueToRoom: () => void,
+  className: string
 }
 
-export default function MediaPicker({ showMediaPicker }: Props) {
+export default function MediaPicker({ continueToRoom, className }: Props) {
   const [devices, refreshDevices] = useMediaDevices()
   const audioDevices = useMemo(() => {
     return devices.filter(({ kind }) => kind == 'audioinput')
@@ -93,7 +94,7 @@ export default function MediaPicker({ showMediaPicker }: Props) {
 
 
   return (
-    <div className="grid grid-cols-2 place-items-center w-[80%]">
+    <div className={`grid-cols-2 place-items-center w-[80%] ${className}`}>
       <div className="flex flex-col items-center justify-evenly h-full">
         <div className="grid grid-cols-2 gap-4">
           <Card className="w-full">
@@ -146,7 +147,7 @@ export default function MediaPicker({ showMediaPicker }: Props) {
           </Card>
         </div>
 
-        <Button className="self-center" onClick={() => showMediaPicker(false)}>Continue</Button>
+        <Button className="self-center" onClick={continueToRoom}>Continue</Button>
       </div>
 
       <div>
