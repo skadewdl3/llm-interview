@@ -2,3 +2,6 @@ Flask
 redis
 chromadb
 numpy
+PyPDF2
+google-generativeai
+openai

@@ -18,11 +18,12 @@ import 'regenerator-runtime/runtime'
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { GetServerSidePropsContext } from "next";
 import { useParams } from "next/navigation";
-import MediaPicker from "@/components/MediaPicker";
+import Lobby from "@/components/Lobby";
 import { Button } from "@/components/ui/button";
 import VideoGrid from "@/components/VideoGrid";
 import MeetingControls from "@/components/MeetingControls";
 import LocalPeer from "@/components/LocalPeer";
+import { useDisplayNameStore } from "@/store/displayNameStore";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,76 +38,37 @@ type Params = {
 export default function Home({ token }: Props) {
 
 
-  const {
-    transcript,
-    interimTranscript, isMicrophoneAvailable,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition
-  } = useSpeechRecognition();
 
-
-  const [displayName, setDisplayName] = useState("");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const screenRef = useRef<HTMLVideoElement>(null);
-  const router = useRouter();
   const { roomId }: Params = useParams();
-  const [isRecording, setIsRecording] = useState(false);
-  const [showMediaPicker, setShowMediaPicker] = useState(true)
+  const [showLobby, setShowLobby] = useState(true)
+  // @ts-ignore
+  const displayName = useDisplayNameStore((state: any) => state.displayName)
 
   const { joinRoom, state } = useRoom({
     onJoin: (room) => {
+      console.log(displayName)
+      updateMetadata({
+        displayName
+      })
       console.log("onJoin", room);
-      updateMetadata({ displayName });
-    },
-    onPeerJoin: (peer) => {
-      console.log("onPeerJoin", peer);
     },
   });
-  const { enableVideo, isVideoOn, stream, disableVideo } = useLocalVideo();
-  const { enableAudio, disableAudio, isAudioOn } = useLocalAudio();
-  const { startScreenShare, stopScreenShare, shareStream } =
-    useLocalScreenShare();
+
   const { updateMetadata } = useLocalPeer<TPeerMetadata>();
   const { peerIds } = usePeerIds();
 
   const continueToRoom = () => {
-    setShowMediaPicker(false)
+    setShowLobby(false)
     joinRoom({ roomId, token })
   }
-
-
-  useEffect(() => {
-    console.log(stream, videoRef.current)
-    if (stream && videoRef.current) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream]);
-
-  useEffect(() => {
-    if (shareStream && screenRef.current) {
-      screenRef.current.srcObject = shareStream;
-    }
-  }, [shareStream]);
-
-
-  useEffect(() => {
-
-    // Check for speech recognition support
-    if (!browserSupportsSpeechRecognition) {
-      console.log('Browser does not support speech recognition.')
-    }
-  })
-
-
 
   return (
     <main
       className={`flex min-h-screen flex-col justify-center items-center p-4`}
     >
-      <MediaPicker className={`${showMediaPicker ? 'grid' : 'hidden'}`} continueToRoom={continueToRoom} />
+      <Lobby className={`${showLobby ? 'grid' : 'hidden'}`} continueToRoom={continueToRoom} />
 
-      <div className={`${showMediaPicker ? 'hidden' : 'block'}`}>
+      <div className={`${showLobby ? 'hidden' : 'block'}`}>
 
         {/* <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex"> */}
         {/*   <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30"> */}
@@ -126,18 +88,13 @@ export default function Home({ token }: Props) {
               }
             </VideoGrid>
             {state == 'connected' && <MeetingControls className="absolute bottom-2 left-1/2 -translate-x-1/2" />}
+            {state == 'connecting' && <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-2xl">Connecting...</p>}
           </div>
           {/* {state === "connected" && <ChatBox />} */}
         </div>
         <div>
 
         </div>
-        <p>Microphone: {listening ? 'on' : 'off'}</p>
-
-        <Button className="mt-40" onClick={() => SpeechRecognition.startListening({ continuous: true })}>Start</Button><br />
-        <Button onClick={SpeechRecognition.stopListening}>Stop</Button> <br />
-        <Button onClick={resetTranscript}>Reset</Button><br />
-        <p>{transcript}</p>
       </div>
 
 

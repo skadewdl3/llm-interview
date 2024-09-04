@@ -12,7 +12,7 @@ type Props = {
 };
 
 const RemotePeer = ({ peerId }: Props) => {
-  // const { metadata } = useRemotePeer({ peerId })
+  const { metadata }: any = useRemotePeer({ peerId })
   const { stream, state } = useRemoteVideo({ peerId });
   const { stream: audioStream, state: audioState } = useRemoteAudio({ peerId });
   const { videoStream: screenVideo, audioStream: screenAudio } =
@@ -95,10 +95,6 @@ const RemotePeer = ({ peerId }: Props) => {
     }
   }, [screenAudio]);
 
-  // useEffect(() => {
-  //   console.log(metadata)
-  // })
-
   return (
     <>
       <motion.div
@@ -107,13 +103,17 @@ const RemotePeer = ({ peerId }: Props) => {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.8 }}
         transition={{ duration: 0.3 }}
+        className="relative"
       >
+        <p className="absolute bottom-4 left-4">{metadata.displayName}</p>
         <video
           ref={vidRef}
           autoPlay
           muted
           className="border-2 rounded-xl border-white-400 aspect-video w-full"
         />
+
+        {audioStream && <audio ref={audioRef} autoPlay></audio>}
       </motion.div>
       {screenVideo && (
 
