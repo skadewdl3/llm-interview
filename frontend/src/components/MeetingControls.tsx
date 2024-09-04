@@ -1,12 +1,11 @@
-import { Toggle } from "@radix-ui/react-toggle";
 import { useEffect, useState } from "react";
 import { CiMicrophoneOn as MicOn, CiMicrophoneOff as MicOff } from "react-icons/ci";
 import { LuCamera as CameraOn, LuCameraOff as CameraOff } from "react-icons/lu";
 import { LuScreenShare as ScreenShareOn, LuScreenShareOff as ScreenShareOff } from "react-icons/lu";
 import { ImPhoneHangUp as LeaveMeeting } from "react-icons/im";
-import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import { Button } from "./ui/button";
-import { useLocalAudio, useLocalScreenShare, useLocalVideo } from "@huddle01/react/hooks";
+import { useLocalAudio, useLocalScreenShare, useLocalVideo, useRoom } from "@huddle01/react/hooks";
+import { useRouter } from "next/router";
 
 type Props = {
   className?: string
@@ -15,33 +14,35 @@ type Props = {
 export default function MeetingControls({ className = '' }: Props) {
 
 
+  // Following maintain state of audio, video and screen sharing
   const { enableVideo, isVideoOn, stream, disableVideo } = useLocalVideo();
   const { enableAudio, disableAudio, isAudioOn } = useLocalAudio();
   const { startScreenShare, stopScreenShare, shareStream } =
     useLocalScreenShare();
-  const [screenShareVariant, setScreenShareVariant] = useState<any>({ variant: 'outline' })
-  const [micOn, setMicOn] = useState(false)
-  const [cameraOn, setCameraOn] = useState(false)
   const [isScreenShareOn, setScreenShareOn] = useState(false)
 
+
+  // Functions to turn audio, video, screen share on an off
   const toggleAudio = () => isAudioOn ? disableAudio() : enableAudio()
   const toggleVideo = () => isVideoOn ? disableVideo() : enableVideo()
-
   const toggleScreenShare = () => {
     if (isScreenShareOn) {
       setScreenShareOn(false)
-      setScreenShareVariant({ variant: 'outline' })
       stopScreenShare()
     }
     else {
       setScreenShareOn(true)
       startScreenShare()
-      setScreenShareVariant({})
     }
   }
 
+
+  // Functions to leave the room
+  const { leaveRoom } = useRoom()
+  const router = useRouter()
   const leaveMeeting = () => {
-    // exit room code
+    leaveRoom()
+    router.push('/')
   }
 
   return (
@@ -58,7 +59,7 @@ export default function MeetingControls({ className = '' }: Props) {
       </Button>
 
 
-      <Button size="icon" {...screenShareVariant} onClick={toggleScreenShare}>
+      <Button size="icon" {...(isScreenShareOn ? {} : { variant: 'outline' })} onClick={toggleScreenShare}>
         {!isScreenShareOn ? <ScreenShareOn className="w-6 h-6" /> : <ScreenShareOff className="w-6 h-6" />}
       </Button>
 

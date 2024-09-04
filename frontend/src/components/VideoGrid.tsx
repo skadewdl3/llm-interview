@@ -1,14 +1,17 @@
-
+// @ts-nocheck
 import { motion, AnimatePresence } from "framer-motion";
+import React from 'react'
 import RemotePeer from "./RemotePeer/RemotePeer";
 
 type Props = {
-  peers: string[]
+  children: React.ReactNode[]
 }
 
-const DynamicGrid = ({ peers }: Props) => {
+const VideoGrid: React.FC<Props> = ({ children: _children }) => {
   // Calculate the number of columns based on the number of items
-  const columns = Math.ceil(Math.sqrt(peers.length));
+  const children = React.Children.toArray(_children).flat();
+  console.log(children)
+  const columns = Math.ceil(Math.sqrt(children.length));
 
   return (
     <div
@@ -16,22 +19,12 @@ const DynamicGrid = ({ peers }: Props) => {
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       <AnimatePresence>
-        {peers.map((peerId) => (
-          <motion.div
-            key={peerId}
-            layout
-            layoutId={peerId}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.3 }}
-          >
-            <RemotePeer peerId={peerId} />
-          </motion.div>
-        ))}
+        {
+          children.map((child, index) => child)
+        }
       </AnimatePresence>
     </div>
   );
 };
 
-export default DynamicGrid;
+export default VideoGrid;

@@ -1,12 +1,12 @@
 import useMediaDevices from "@/hooks/useMediaDevices";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { SlCamera as Camera } from "react-icons/sl";
-import { SlMicrophone as Microphone } from "react-icons/sl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
-import { useLocalAudio, useLocalVideo } from "@huddle01/react/hooks";
+import { useLocalAudio, useLocalVideo, useRoom } from "@huddle01/react/hooks";
+import { LuCameraOff as CameraOff } from "react-icons/lu";
+import { CiMicrophoneOff as MicOff } from "react-icons/ci";
 
 type Props = {
   continueToRoom: () => void,
@@ -28,6 +28,8 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
   const videoPreview = useRef<HTMLVideoElement>(null)
 
 
+  const { state } = useRoom()
+
   const {
     stream: videoStream,
     isVideoOn,
@@ -44,6 +46,10 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
     disableAudio,
     changeAudioSource,
   } = useLocalAudio()
+
+
+  const toggleAudio = () => isAudioOn ? disableAudio() : enableAudio()
+  const toggleVideo = () => isVideoOn ? disableVideo() : enableVideo()
 
 
   useEffect(() => {
@@ -95,7 +101,7 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
 
   return (
     <div className={`grid-cols-2 place-items-center w-[80%] ${className}`}>
-      <div className="flex flex-col items-center justify-evenly h-full">
+      <div className="flex flex-col items-center min-h-[200px] justify-between">
         <div className="grid grid-cols-2 gap-4">
           <Card className="w-full">
             <CardHeader>
@@ -147,21 +153,36 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
           </Card>
         </div>
 
+        <div className="flex my-4 gap-4">
+          <Button {...(isVideoOn ? { variant: 'outline' } : {})} onClick={toggleVideo}> <CameraOff className="h-4 w-4 mr-2" /> Turn off video</Button>
+          <Button {...(isAudioOn ? { variant: 'outline' } : {})} onClick={toggleAudio}> <MicOff className="h-4 w-4 mr-2" /> Turn off audio</Button>
+        </div>
         <Button className="self-center" onClick={continueToRoom}>Continue</Button>
       </div>
 
       <div>
         {
-          videoDevice && videoDevice.label ? (
-            <video ref={videoPreview}
-              className="aspect-video rounded-xl w-full"
-              autoPlay
-              muted
-            />
+          !isVideoOn ? (
+            <Skeleton className="w-[400px] aspect-video flex items-center justify-center">
+              <p className="">
+                Video has been turned off
+              </p>
+            </Skeleton>
+          ) :
+            (videoDevice && videoDevice.label) ? (
+              <video ref={videoPreview}
+                className="aspect-video rounded-xl w-full"
+                autoPlay
+                muted
+              />
 
-          ) : (
-            <Skeleton className="w-full h-full" />
-          )
+            ) : (
+              <Skeleton className="w-[400px] aspect-video flex items-center justify-center">
+                <p className="">
+                  Select a camera to turn on video
+                </p>
+              </Skeleton>
+            )
         }
       </div>
 
