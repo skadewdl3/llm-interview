@@ -4,30 +4,55 @@ import { LuCamera as CameraOn, LuCameraOff as CameraOff } from "react-icons/lu";
 import { LuScreenShare as ScreenShareOn, LuScreenShareOff as ScreenShareOff } from "react-icons/lu";
 import { ImPhoneHangUp as LeaveMeeting } from "react-icons/im";
 import { Button } from "./ui/button";
-import { useLocalAudio, useLocalScreenShare, useLocalVideo, useRoom } from "@huddle01/react/hooks";
+import { useLocalAudio, useLocalPeer, useLocalScreenShare, useLocalVideo, useRoom } from "@huddle01/react/hooks";
 import { useRouter } from "next/router";
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
+import { useParams } from "next/navigation";
 
 type Props = {
   className?: string
 }
 
+
 export default function MeetingControls({ className = '' }: Props) {
 
 
   // Following maintain state of audio, video and screen sharing
+  const { metadata }: any = useLocalPeer()
   const { enableVideo, isVideoOn, stream, disableVideo } = useLocalVideo();
   const { enableAudio, disableAudio, isAudioOn } = useLocalAudio();
-  const { startScreenShare, stopScreenShare, shareStream } =
-    useLocalScreenShare();
+  const { startScreenShare, stopScreenShare } = useLocalScreenShare();
   const [isScreenShareOn, setScreenShareOn] = useState(false)
   const { transcript, browserSupportsSpeechRecognition, resetTranscript } = useSpeechRecognition()
+  const { roomId } = useParams()
 
+
+
+  const appendTranscript = async () => {
+    try {
+      let response = await fetch('/api/room/conversation', {
+        method: 'POST',
+        body: JSON.stringify({
+          text: transcript,
+          personName: metadata.displayName,
+          roomId: roomId
+        }),
+        headers: {
+          'Content-type': 'application/json'
+        }
+      })
+    }
+    catch (err) {
+      console.log(err)
+    }
+  }
 
   // Functions to turn audio, video, screen share on an off
   const toggleAudio = () => isAudioOn ? (() => {
     SpeechRecognition.stopListening()
     disableAudio()
+    if (transcript == '') return
+    appendTranscript()
     resetTranscript()
   })() : (() => {
     SpeechRecognition.startListening({ continuous: true })
