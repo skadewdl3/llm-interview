@@ -42,15 +42,14 @@ export default function Home() {
   useEffect(() => {
     if (error != null) return console.log(`Error: ${error}`)
     if (roomId == null) return console.log(`Failed to get roomId`)
-    // We have our roomId successfully, take user to media selection page
     router.push(`/${roomId}`)
   }, [roomId, error])
 
-  return <main>
+  return <main className="w-screen min-h-screen flex items-center justify-center">
 
     <Card className="w-[350px]">
       <CardHeader>
-        <CardTitle>Create Room</CardTitle>
+        <CardTitle className="text-2xl">Create Room</CardTitle>
         <CardDescription>Create a new meeting room in one-click.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -58,9 +57,9 @@ export default function Home() {
           <form onSubmit={form.handleSubmit(createRoom)}>
             <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Display Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Name of your meeting room" {...field} />
+                  <Input placeholder="You name when you join" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -77,27 +76,3 @@ export default function Home() {
     </Card>
   </main >;
 }
-
-// export const getServerSideProps = async () => {
-//   const response = await fetch("https://api.huddle01.com/api/v1/create-room", {
-//     method: "POST",
-//     body: JSON.stringify({
-//       title: "Huddle01 Room",
-//     }),
-//     headers: {
-//       "Content-type": "application/json",
-//       "x-api-key": process.env.API_KEY || "",
-//     },
-//   });
-//
-//   const data = await response.json();
-//
-//  const roomId = data.data.roomId;
-//
-//   return {
-//     redirect: {
-//       destination: `/${roomId}`,
-//       permanent: false,
-//     },
-//   };
-// };
