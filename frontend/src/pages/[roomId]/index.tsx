@@ -1,4 +1,3 @@
-'use client';
 import ChatBox from "@/components/ChatBox/ChatBox";
 import RemotePeer from "@/components/RemotePeer";
 import { TPeerMetadata } from "@/utils/types";
@@ -24,6 +23,7 @@ import VideoGrid from "@/components/VideoGrid";
 import MeetingControls from "@/components/MeetingControls";
 import LocalPeer from "@/components/LocalPeer";
 import { useDisplayNameStore } from "@/store/displayNameStore";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,7 +38,7 @@ type Params = {
 export default function Home({ token }: Props) {
 
 
-
+  const [summary, setSummary] = useState('')
   const { roomId }: Params = useParams();
   const [showLobby, setShowLobby] = useState(true)
   // @ts-ignore
@@ -53,6 +53,25 @@ export default function Home({ token }: Props) {
       console.log("onJoin", room);
     },
   });
+
+  const getSummary = async () => {
+    try {
+      let response = await fetch(`/api/room/summary`, {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId
+        })
+      })
+
+      let { summary } = await response.json()
+      setSummary(summary)
+    } catch (err) {
+      console.log(err)
+    }
+  }
 
   const { updateMetadata } = useLocalPeer<TPeerMetadata>();
   const { peerIds } = usePeerIds();
@@ -79,6 +98,25 @@ export default function Home({ token }: Props) {
         <div className="w-full mt-8 flex gap-4 justify-between items-stretch">
           <div className="flex-1 justify-between items-center flex flex-col">
 
+            {
+              state == 'connected' && (
+                <div className="absolute top-4 right-4">
+
+                  <Card className="max-w-80">
+                    <CardHeader>
+                      <CardTitle>Summary</CardTitle>
+                      <CardDescription>A summary of the conversation so far.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{summary}</p>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={getSummary}>Get Summary</Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              )
+            }
             <VideoGrid>
               <LocalPeer />
               {
@@ -89,10 +127,12 @@ export default function Home({ token }: Props) {
             </VideoGrid>
             {state == 'connected' && <MeetingControls className="absolute bottom-2 left-1/2 -translate-x-1/2" />}
             {state == 'connecting' && <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-2xl">Connecting...</p>}
+            {state == 'idle' && <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-2xl">Joining room...</p>}
           </div>
           {/* {state === "connected" && <ChatBox />} */}
         </div>
         <div>
+
 
         </div>
       </div>
