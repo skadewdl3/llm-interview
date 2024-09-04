@@ -1,5 +1,5 @@
-import ChatBox from "@/component/ChatBox/ChatBox";
-import RemotePeer from "@/component/RemotePeer/RemotePeer";
+import ChatBox from "@/components/ChatBox/ChatBox";
+import RemotePeer from "@/components/RemotePeer/RemotePeer";
 import { TPeerMetadata } from "@/utils/types";
 import {
   useLocalAudio,
@@ -20,11 +20,16 @@ type Props = {
   token: string;
 };
 
+type Params = {
+  roomId: string
+}
+
 export default function Home({ token }: Props) {
   const [displayName, setDisplayName] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const screenRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
+  const { roomId }: Params = useParams();
   const [isRecording, setIsRecording] = useState<boolean>(false);
 
   const { joinRoom, state } = useRoom({
@@ -42,6 +47,10 @@ export default function Home({ token }: Props) {
     useLocalScreenShare();
   const { updateMetadata } = useLocalPeer<TPeerMetadata>();
   const { peerIds } = usePeerIds();
+
+  useEffect(() => {
+    joinRoom({ roomId, token })
+  }, [])
 
   useEffect(() => {
     if (stream && videoRef.current) {
@@ -128,11 +137,11 @@ export default function Home({ token }: Props) {
                 onClick={async () => {
                   const status = isRecording
                     ? await fetch(
-                        `/api/stopRecording?roomId=${router.query.roomId}`
-                      )
+                      `/api/stopRecording?roomId=${router.query.roomId}`
+                    )
                     : await fetch(
-                        `/api/startRecording?roomId=${router.query.roomId}`
-                      );
+                      `/api/startRecording?roomId=${router.query.roomId}`
+                    );
 
                   const data = await status.json();
                   console.log({ data });
@@ -186,6 +195,7 @@ export default function Home({ token }: Props) {
 }
 
 import { GetServerSidePropsContext } from "next";
+import { useParams } from "next/navigation";
 
 export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
   const accessToken = new AccessToken({
