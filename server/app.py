@@ -230,6 +230,160 @@ def generate_summary():
         return jsonify({"error": str(e)}), 400
 
 
+@app.route('/evaluate_response', methods=['POST'])
+def evaluate_response():
+    try:
+        data = request.json
+        room_id = data['room_id']
+        
+        # Get the conversation from Redis (all previous messages in the interview)
+        conversation = redis_client.get(room_id)
+        if conversation is None:
+            return jsonify({"error": f"Room '{room_id}' not found."}), 404
+
+        # Parse the conversation (it's stored as a JSON list)
+        conversation = json.loads(conversation)
+        
+        # Assuming the interviewer questions and candidate responses are stored in the conversation
+        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+        
+        # Marking Schema (based on the PDF you provided)
+        marking_schema = """
+        Evaluate the candidate’s responses based on the following criteria:
+        
+        Work Output (40%):
+        1. Scientific Projects/Assignments
+        2. Work Quality
+        3. Work Quantity
+        4. Administrative Duties
+        
+        Personal Attributes (30%):
+        1. Attitude
+        2. Responsibility
+        3. Initiative
+        4. Commitment to Work
+        5. Adaptability
+        6. Communication Skills
+        7. Discipline
+        8. Resourcefulness
+        9. Credibility & Accountability
+        10. Team Work
+        
+        Functional Competency (30%):
+        1. Scientific Knowledge
+        2. Experimental or Practical Ability
+        3. Fulfillment of Set Commitments
+        4. Updating of Knowledge & Skills
+        5. Knowledge of Rules and Regulations
+        
+        Provide grades from Outstanding (5), Very Good (4), Average (3), Below Average (2), and Poor (1).
+        """
+
+        # Prepare prompt for the LLM
+        prompt = f"""
+        The following is the conversation between an interviewer and a candidate:\n\n{conversation_text}\n\n
+        {marking_schema}
+        
+        Based on the candidate’s responses, provide an evaluation with a grade for each of the categories.
+        """
+
+        # Query the LLM for evaluation
+        models = client.models.list()
+        model_gpt = models.data[0].id
+        
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an expert evaluator following a scientific grading system."},
+                {"role": "user", "content": prompt}
+            ],
+            model=model_gpt,
+        )
+        
+        evaluation = response.choices[0].message.content.strip()
+        
+        return jsonify({"evaluation": evaluation}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+
+@app.route('/generate_questions', methods=['POST'])
+def generate_questions():
+    try:
+        data = request.json
+        room_id = data['room_id']
+        
+        # Get the conversation from Redis
+        conversation = redis_client.get(room_id)
+        if conversation is None:
+            return jsonify({"error": f"Room '{room_id}' not found."}), 404
+
+        # Parse the conversation (it's stored as a JSON list)
+        conversation = json.loads(conversation)
+        
+        # Prepare prompt for the LLM (concatenate all messages)
+        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+        prompt = f"Based on the following conversation, suggest three follow-up questions:\n\n{conversation_text}"
+        
+        # Query LLM for the questions
+        models = client.models.list()
+        model_gpt = models.data[0].id
+        
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            model=model_gpt,
+        )
+        
+        questions = response.choices[0].message.content.strip().split("\n")[:3]
+        
+        return jsonify({"suggested_questions": questions}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
+
+@app.route('/check_question', methods=['POST'])
+def check_question():
+    try:
+        data = request.json
+        room_id = data['room_id']
+        question = data['question']
+        
+        # Get the conversation from Redis
+        conversation = redis_client.get(room_id)
+        if conversation is None:
+            return jsonify({"error": f"Room '{room_id}' not found."}), 404
+
+        # Parse the conversation (it's stored as a JSON list)
+        conversation = json.loads(conversation)
+        
+        # Prepare prompt for the LLM (concatenate all messages)
+        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+        prompt = f"The following is a conversation:\n\n{conversation_text}\n\nBased on this conversation, check if the following question is relevant, or if it deviates from the conversation context, is unnecessary, political, or inappropriate:\n\n{question}"
+
+        # Query LLM for evaluation of the question
+        models = client.models.list()
+        model_gpt = models.data[0].id
+        
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            model=model_gpt,
+        )
+        
+        # Process LLM response
+        evaluation = response.choices[0].message.content.strip()
+        
+        return jsonify({"evaluation": evaluation}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+
 # Route for candidates to upload their resume (PDF), extract text, and store in ChromaDB
 @app.route('/upload_resume', methods=['POST'])
 def upload_resume():
