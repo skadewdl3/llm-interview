@@ -1,3 +1,4 @@
+'use client';
 import ChatBox from "@/components/ChatBox/ChatBox";
 import RemotePeer from "@/components/RemotePeer/RemotePeer";
 import { TPeerMetadata } from "@/utils/types";
@@ -13,6 +14,9 @@ import { AccessToken, Role } from "@huddle01/server-sdk/auth";
 import { Inter } from "next/font/google";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
+import 'regenerator-runtime/runtime'
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +29,16 @@ type Params = {
 }
 
 export default function Home({ token }: Props) {
+
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
+
+
   const [displayName, setDisplayName] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const screenRef = useRef<HTMLVideoElement>(null);
@@ -63,6 +77,11 @@ export default function Home({ token }: Props) {
       screenRef.current.srcObject = shareStream;
     }
   }, [shareStream]);
+
+
+  if (!browserSupportsSpeechRecognition) {
+    console.log('Browser does not support speech recognition.')
+  }
 
   return (
     <main
@@ -190,6 +209,14 @@ export default function Home({ token }: Props) {
         </div>
         {state === "connected" && <ChatBox />}
       </div>
+      <div>
+    
+    </div>
+    <p>Microphone: {listening ? 'on' : 'off'}</p>
+      <button onClick={() => SpeechRecognition.startListening({ continuous: true })}>Start</button>
+      <button onClick={SpeechRecognition.stopListening}>Stop</button>
+      <button onClick={resetTranscript}>Reset</button>
+      <p>{transcript}</p>
     </main>
   );
 }
