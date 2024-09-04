@@ -6,14 +6,15 @@ import numpy as np
 from openai import OpenAI
 import json
 import datetime
-import PyPDF2  
-import uuid  
+import PyPDF2
+import uuid
 
 
 app = Flask(__name__)
 
 
-redis_client = redis.StrictRedis(host='127.0.0.1', port=6379, db=0, decode_responses=True)
+redis_client = redis.StrictRedis(
+    host='127.0.0.1', port=6379, db=0, decode_responses=True)
 
 
 chroma_client = chromadb.HttpClient(host="http://127.0.0.1:8000",
@@ -35,6 +36,8 @@ client = OpenAI(
 )
 
 # Utility to extract text from a PDF file
+
+
 def extract_text_from_pdf(pdf_file):
     pdf_reader = PyPDF2.PdfReader(pdf_file)
     text = ''
@@ -43,19 +46,19 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text()
     return text
 
+
 @app.route('/add_to_chroma', methods=['POST'])
 def add_to_chroma():
     try:
         data = request.json
-        vector = data['vector']  
-        metadata = data['metadata']  
-        vector_id = data['id']  
+        vector = data['vector']
+        metadata = data['metadata']
+        vector_id = data['id']
 
-     
         vector = np.array(vector).tolist()
 
-    
-        collection.add(ids=[vector_id], embeddings=[vector], metadatas=[metadata])
+        collection.add(ids=[vector_id], embeddings=[
+                       vector], metadatas=[metadata])
 
         return jsonify({"message": "Vector added successfully."}), 200
     except Exception as e:
@@ -66,14 +69,13 @@ def add_to_chroma():
 def query_chroma():
     try:
         data = request.json
-        query_vector = data['query_vector']  
-        n_results = data.get('n_results', 5) 
-
+        query_vector = data['query_vector']
+        n_results = data.get('n_results', 5)
 
         query_vector = np.array(query_vector).tolist()
 
-
-        results = collection.query(query_embeddings=[query_vector], n_results=n_results)
+        results = collection.query(
+            query_embeddings=[query_vector], n_results=n_results)
 
         return jsonify(results), 200
     except Exception as e:
@@ -87,7 +89,6 @@ def set_redis():
         key = data['key']
         value = data['value']
 
-
         redis_client.set(key, value)
 
         return jsonify({"message": "Value set in Redis successfully."}), 200
@@ -100,7 +101,6 @@ def get_redis():
     try:
         key = request.args.get('key')
 
-     
         value = redis_client.get(key)
 
         if value:
@@ -120,13 +120,12 @@ def chatgpt():
         if not prompt:
             return jsonify({"error": "Prompt is required"}), 400
 
-
         models = client.models.list()
         model_gpt = models.data[0].id
         print(model_gpt)
-        
+
         response = client.chat.completions.create(
- 
+
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt}
@@ -134,13 +133,11 @@ def chatgpt():
             model=model_gpt,
         )
 
-       
         completion_text = response.choices[0].message.content.strip()
 
         return jsonify({"response": completion_text}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
 
 
 # Route to create a new room
@@ -149,15 +146,18 @@ def create_room():
     try:
         data = request.json
         room_id = data['room_id']
-        
+
         # Create room with empty conversation list
-        redis_client.set(room_id, json.dumps([]))  # Using JSON list to store conversation
-        
+        # Using JSON list to store conversation
+        redis_client.set(room_id, json.dumps([]))
+
         return jsonify({"message": f"Room '{room_id}' created successfully."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 # Route to append conversation to a room
+
+
 @app.route('/append_conversation', methods=['POST'])
 def append_conversation():
     try:
@@ -165,7 +165,7 @@ def append_conversation():
         room_id = data['room_id']
         person_name = data['person_name']
         text = data['text']
-        
+
         # Get the current conversation from Redis
         conversation = redis_client.get(room_id)
         if conversation is None:
@@ -173,7 +173,7 @@ def append_conversation():
 
         # Parse the conversation (it's stored as a JSON list)
         conversation = json.loads(conversation)
-        
+
         # Add new entry with timestamp
         conversation_entry = {
             "person_name": person_name,
@@ -181,21 +181,23 @@ def append_conversation():
             "timestamp": datetime.datetime.now().isoformat()
         }
         conversation.append(conversation_entry)
-        
+
         # Save updated conversation back to Redis
         redis_client.set(room_id, json.dumps(conversation))
-        
+
         return jsonify({"message": "Conversation appended successfully."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 # Route to generate summary from the conversation
+
+
 @app.route('/generate_summary', methods=['POST'])
 def generate_summary():
     try:
         data = request.json
         room_id = data['room_id']
-        
+
         # Get the conversation from Redis
         conversation = redis_client.get(room_id)
         if conversation is None:
@@ -203,15 +205,16 @@ def generate_summary():
 
         # Parse the conversation (it's stored as a JSON list)
         conversation = json.loads(conversation)
-        
+
         # Prepare prompt for the LLM (concatenate all messages)
-        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+        conversation_text = "\n".join(
+            [f"{entry['person_name']}: {entry['text']}" for entry in conversation])
         prompt = f"Summarize the following conversation:\n\n{conversation_text}"
-        
+
         # Query LLM for the summary
         models = client.models.list()
         model_gpt = models.data[0].id
-        
+
         response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -219,9 +222,9 @@ def generate_summary():
             ],
             model=model_gpt,
         )
-        
+
         summary = response.choices[0].message.content.strip()
-        
+
         return jsonify({"summary": summary}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -234,41 +237,46 @@ def upload_resume():
         # Ensure a PDF is provided
         if 'resume' not in request.files:
             return jsonify({"error": "No resume file provided."}), 400
-        
+
         # Extract text from the uploaded PDF file
         pdf_file = request.files['resume']
         extracted_text = extract_text_from_pdf(pdf_file)
-        
+
         # Generate a vector embedding for the extracted text
         vector = generate_embedding(extracted_text)
-        
+
         # Generate a unique vector ID for this resume
         vector_id = str(uuid.uuid4())
-        
+
         # Store the vector and metadata in ChromaDB
         metadata = {"resume_text": extracted_text}
-        collection.add(ids=[vector_id], embeddings=[vector], metadatas=[metadata])
-        
+        collection.add(ids=[vector_id], embeddings=[
+                       vector], metadatas=[metadata])
+
         return jsonify({"message": "Resume uploaded and stored successfully.", "vector_id": vector_id}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 # Route for interviewers to submit a job description and get relevant candidates from ChromaDB
+
+
 @app.route('/recommend_candidates', methods=['POST'])
 def recommend_candidates():
     try:
         # Get the job description and number of results from the request body
         data = request.json
         job_description = data['job_description']
-        n_results = int(data.get('n_results', 5))  # Default to 5 candidates if not provided
-        
+        # Default to 5 candidates if not provided
+        n_results = int(data.get('n_results', 5))
+
         # Generate an embedding for the job description
         job_vector = generate_embedding(job_description)
-        
+
         # Query the ChromaDB to find the top N candidates
         job_vector = np.array(job_vector).tolist()
-        results = collection.query(query_embeddings=[job_vector], n_results=n_results)
-        
+        results = collection.query(
+            query_embeddings=[job_vector], n_results=n_results)
+
         # Return the candidates sorted by relevancy
         return jsonify(results), 200
     except Exception as e:

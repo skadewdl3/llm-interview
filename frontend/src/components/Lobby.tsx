@@ -7,6 +7,10 @@ import { Skeleton } from "./ui/skeleton";
 import { useLocalAudio, useLocalVideo, useRoom } from "@huddle01/react/hooks";
 import { LuCameraOff as CameraOff } from "react-icons/lu";
 import { CiMicrophoneOff as MicOff } from "react-icons/ci";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Separator } from "./ui/separator";
+import { useDisplayNameStore } from "@/store/displayNameStore";
 
 type Props = {
   continueToRoom: () => void,
@@ -15,6 +19,7 @@ type Props = {
 
 export default function MediaPicker({ continueToRoom, className }: Props) {
   const [devices, refreshDevices] = useMediaDevices()
+  const setDisplayName = useDisplayNameStore((state: any) => state.setDisplayName)
   const audioDevices = useMemo(() => {
     return devices.filter(({ kind }) => kind == 'audioinput')
   }, [devices])
@@ -88,9 +93,20 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
     // Check for audio and video permissions
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: true })
-      .then(() => {
+      .then((stream) => {
         enableVideo()
         enableAudio()
+
+        setVideoDevice(videoDevices[0])
+        setAudioDevice(audioDevices[0])
+
+        // @ts-ignore
+        window.localStream = stream;
+        // @ts-ignore
+        window.localAudio.srcObject = stream;
+        // @ts-ignore
+        window.localAudio.autoplay = true;
+
         refreshDevices()
       })
       .catch((err) => {
@@ -101,11 +117,12 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
 
   return (
     <div className={`grid-cols-2 place-items-center w-[80%] ${className}`}>
-      <div className="flex flex-col items-center min-h-[200px] justify-between">
+      <div className="flex flex-col min-h-[200px] justify-between">
+        <p className="text-2xl mb-4">Audio and Video Settings</p>
         <div className="grid grid-cols-2 gap-4">
           <Card className="w-full">
             <CardHeader>
-              <CardTitle className="text-2xl text-center">Select Microphone</CardTitle>
+              <CardTitle className="text-center">Select Microphone</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-center">
               <DropdownMenu>
@@ -130,7 +147,7 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
 
           <Card className="w-full">
             <CardHeader>
-              <CardTitle className="text-2xl text-center">Select Camera</CardTitle>
+              <CardTitle className="text-center">Select Camera</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-center">
               <DropdownMenu>
@@ -153,11 +170,20 @@ export default function MediaPicker({ continueToRoom, className }: Props) {
           </Card>
         </div>
 
-        <div className="flex my-4 gap-4">
+
+        <Separator className="my-4" />
+        <p className="text-2xl mb-4">Display Name</p>
+        <Input placeholder="Enter your name" onInput={(e: any) => setDisplayName(e.target.value)} id="display-name" />
+
+
+        <Separator className="my-4" />
+        <p className="text-2xl mb-4">Before joining...</p>
+
+        <div className="flex gap-4">
           <Button {...(isVideoOn ? { variant: 'outline' } : {})} onClick={toggleVideo}> <CameraOff className="h-4 w-4 mr-2" /> Turn off video</Button>
           <Button {...(isAudioOn ? { variant: 'outline' } : {})} onClick={toggleAudio}> <MicOff className="h-4 w-4 mr-2" /> Turn off audio</Button>
         </div>
-        <Button className="self-center" onClick={continueToRoom}>Continue</Button>
+        <Button className="mt-8 self-start" onClick={continueToRoom}>Continue</Button>
       </div>
 
       <div>

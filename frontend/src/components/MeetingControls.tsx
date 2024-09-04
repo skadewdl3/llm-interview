@@ -6,6 +6,7 @@ import { ImPhoneHangUp as LeaveMeeting } from "react-icons/im";
 import { Button } from "./ui/button";
 import { useLocalAudio, useLocalScreenShare, useLocalVideo, useRoom } from "@huddle01/react/hooks";
 import { useRouter } from "next/router";
+import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 
 type Props = {
   className?: string
@@ -20,10 +21,18 @@ export default function MeetingControls({ className = '' }: Props) {
   const { startScreenShare, stopScreenShare, shareStream } =
     useLocalScreenShare();
   const [isScreenShareOn, setScreenShareOn] = useState(false)
+  const { transcript, browserSupportsSpeechRecognition, resetTranscript } = useSpeechRecognition()
 
 
   // Functions to turn audio, video, screen share on an off
-  const toggleAudio = () => isAudioOn ? disableAudio() : enableAudio()
+  const toggleAudio = () => isAudioOn ? (() => {
+    SpeechRecognition.stopListening()
+    disableAudio()
+    resetTranscript()
+  })() : (() => {
+    SpeechRecognition.startListening({ continuous: true })
+    enableAudio()
+  })()
   const toggleVideo = () => isVideoOn ? disableVideo() : enableVideo()
   const toggleScreenShare = () => {
     if (isScreenShareOn) {
@@ -37,6 +46,18 @@ export default function MeetingControls({ className = '' }: Props) {
   }
 
 
+  useEffect(() => {
+
+    // Check for speech recognition support
+    if (!browserSupportsSpeechRecognition) {
+      console.log('Browser does not support speech recognition.')
+    }
+  })
+
+  useEffect(() => {
+    console.log(transcript)
+  }, [transcript])
+
   // Functions to leave the room
   const { leaveRoom } = useRoom()
   const router = useRouter()
@@ -46,25 +67,31 @@ export default function MeetingControls({ className = '' }: Props) {
   }
 
   return (
-    <div className={`flex items-center justify-center gap-2 [&>button]:h-12 [&>button]:w-12 ${className}`}>
+    <div className={className}>
 
 
-      <Button size="icon" variant={isAudioOn ? "outline" : "destructive"} className="h-12 w-12" onClick={toggleAudio}>
-        {isAudioOn ? <MicOn className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
-      </Button>
+      <p className="text-xl text-justify">{transcript}</p>
+      <div className={`flex items-center justify-center gap-2 [&>button]:h-12 [&>button]:w-12`}>
 
 
-      <Button size="icon" variant={isVideoOn ? "outline" : "destructive"} onClick={toggleVideo}>
-        {isVideoOn ? <CameraOn className="w-6 h-6" /> : <CameraOff className="w-6 h-6" />}
-      </Button>
+        <Button size="icon" variant={isAudioOn ? "outline" : "destructive"} className="h-12 w-12" onClick={toggleAudio}>
+          {isAudioOn ? <MicOn className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+        </Button>
 
 
-      <Button size="icon" {...(isScreenShareOn ? {} : { variant: 'outline' })} onClick={toggleScreenShare}>
-        {!isScreenShareOn ? <ScreenShareOn className="w-6 h-6" /> : <ScreenShareOff className="w-6 h-6" />}
-      </Button>
+        <Button size="icon" variant={isVideoOn ? "outline" : "destructive"} onClick={toggleVideo}>
+          {isVideoOn ? <CameraOn className="w-6 h-6" /> : <CameraOff className="w-6 h-6" />}
+        </Button>
 
 
-      <Button size="icon" variant="destructive" onClick={leaveMeeting}> <LeaveMeeting className="w-6 h-6" /> </Button>
-    </div >
+        <Button size="icon" {...(isScreenShareOn ? {} : { variant: 'outline' })} onClick={toggleScreenShare}>
+          {!isScreenShareOn ? <ScreenShareOn className="w-6 h-6" /> : <ScreenShareOff className="w-6 h-6" />}
+        </Button>
+
+
+        <Button size="icon" variant="destructive" onClick={leaveMeeting}> <LeaveMeeting className="w-6 h-6" /> </Button>
+      </div >
+
+    </div>
   )
 }

@@ -9,7 +9,7 @@ import React, { useEffect, useRef } from 'react';
 
 const LocalPeer = () => {
 
-  const { metadata } = useLocalPeer()
+  const { metadata }: any = useLocalPeer()
   const { stream } = useLocalVideo()
   const { shareStream } =
     useLocalScreenShare();
@@ -56,7 +56,7 @@ const LocalPeer = () => {
 
   useEffect(() => {
     console.log(metadata)
-  })
+  }, [metadata])
 
   return (
     <>
@@ -66,7 +66,9 @@ const LocalPeer = () => {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.8 }}
         transition={{ duration: 0.3 }}
+        className="relative"
       >
+        <p className="absolute bottom-4 left-4">{metadata.displayName}</p>
         <video
           ref={vidRef}
           autoPlay
