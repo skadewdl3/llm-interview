@@ -58,8 +58,37 @@ export default function Dashboard({ url }: Props) {
     setRequirement('')
   }
 
+  const getRecommendations = async () => {
+    let response
+    try {
+
+      response = await fetch(`${url}/recommend_candidates`, {
+        method: 'POST',
+        body: JSON.stringify({
+          job_description: `Required Skills:\n${jobRequirements.join(',')}`,
+          n_results: 5
+        }),
+        headers: {
+
+          'Content-type': 'application/json'
+        }
+      })
+      if (response.ok) {
+        console.log(await response.json());
+      } else {
+        console.error('Failed to get recommendations');
+      }
+    } catch (error) {
+      console.error(`Error getting recommendations - ${error}`);
+    }
+
+
+  }
+
   const handleSubmit = async () => {
     if (!file) return
+    console.log(file)
+
 
 
     const formData = new FormData();
@@ -69,9 +98,6 @@ export default function Dashboard({ url }: Props) {
       const response = await fetch(`${url}/upload_resume`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-type': 'multipart/form-data'
-        }
       });
 
       if (response.ok) {
@@ -259,6 +285,7 @@ export default function Dashboard({ url }: Props) {
             </CardContent>
 
             <CardFooter>
+              <Button onClick={getRecommendations}>Submit</Button>
             </CardFooter>
           </Card>
         </main>
