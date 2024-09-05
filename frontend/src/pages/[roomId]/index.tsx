@@ -99,12 +99,21 @@ export default function Home({ token }: Props) {
         <div className="w-full mt-8 flex gap-4 justify-between items-stretch">
           <div className="flex-1 justify-between items-center flex flex-col">
 
+
+            <VideoGrid>
+              <LocalPeer />
+              {
+                peerIds.map((peerId, index) => (
+                  <RemotePeer peerId={peerId} key={index} />
+                ))
+              }
+            </VideoGrid>
             {
               state == 'connected' && (
                 <div className="absolute top-4 right-4 flex flex-col gap-2">
 
                   <div>
-                    <Card className="max-w-80">
+                    <Card className="max-w-80 bg-background">
                       <CardHeader>
                         <CardTitle>Summary</CardTitle>
                         <CardDescription>A summary of the conversation so far.</CardDescription>
@@ -119,7 +128,7 @@ export default function Home({ token }: Props) {
                   </div>
 
                   <div>
-                    <Card className="max-w-80">
+                    <Card className="max-w-80 bg-background">
                       <CardHeader>
                         <CardTitle>Rate Candidate</CardTitle>
                         <CardDescription>View a detailed rating of the candidates experience based on DRDO specifications.</CardDescription>
@@ -132,14 +141,6 @@ export default function Home({ token }: Props) {
                 </div>
               )
             }
-            <VideoGrid>
-              <LocalPeer />
-              {
-                peerIds.map((peerId, index) => (
-                  <RemotePeer peerId={peerId} key={index} />
-                ))
-              }
-            </VideoGrid>
             {state == 'connected' && <MeetingControls className="absolute bottom-2 left-1/2 -translate-x-1/2" />}
             {state == 'connecting' && <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-2xl">Connecting...</p>}
             {state == 'idle' && <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-2xl">Joining room...</p>}
