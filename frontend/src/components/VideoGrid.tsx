@@ -15,7 +15,7 @@ const VideoGrid: React.FC<Props> = ({ children: _children }) => {
 
   return (
     <div
-      className={`grid grid-cols-${columns} gap-4`}
+      className={`grid grid-cols-${columns} gap-4 s-screen max-h-screen`}
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
     >
       <AnimatePresence>
