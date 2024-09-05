@@ -5,19 +5,12 @@ import useAsyncFunction from "@/hooks/useAsyncFunction";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { BiLoaderAlt as LoadingSpinner } from "react-icons/bi";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { z } from 'zod'
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import Link from "next/link";
 
-// const formSchema = z.object({
-//   name: z.string().min(3, {
-//     message: "Meeting room name must be at least 3 characters.",
-//   }),
-// })
-//
 export default function Home() {
   const router = useRouter()
+
+  const [code, setCode] = useState('')
   const { execute: createRoom, loading, error, result: roomId } = useAsyncFunction(async () => {
     const response = await fetch('/api/room/create', {
       method: 'POST',
@@ -25,12 +18,15 @@ export default function Home() {
     const { roomId } = await response.json()
     return roomId
   })
-  // const form = useForm<z.infer<typeof formSchema>>({
-  //   resolver: zodResolver(formSchema),
-  //   defaultValues: {
-  //     name: "",
-  //   },
-  // })
+
+
+  const joinRoom = () => {
+    let temp = code
+    if (temp.includes('/')) {
+      temp = temp.split('/').slice(-1)[0]
+    }
+    router.push(`/${temp}`)
+  }
 
   useEffect(() => {
     if (error != null) return console.log(`Error: ${error}`)
@@ -38,7 +34,8 @@ export default function Home() {
     router.push(`/${roomId}`)
   }, [roomId, error])
 
-  return <main className="w-screen min-h-screen flex items-center justify-center">
+
+  return <main className="w-screen min-h-screen flex items-center justify-center flex-col gap-4">
 
     <Card className="w-[350px]">
       <CardHeader>
@@ -51,6 +48,30 @@ export default function Home() {
           Create
         </Button>
       </CardFooter>
+
+
+      <div className="flex items-center justify-center relative">
+        <div className="bg-neutral-400/20 w-[90%] h-0.5"></div>
+        <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background text-neutral-400 text-center font-bold text-sm">OR</p>
+      </div>
+
+      <CardHeader>
+        <CardTitle className="text-2xl">Join Room</CardTitle>
+        <CardDescription>Join an existing room with a code.</CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <div className="w-full">
+
+          <Input onInput={(e: any) => setCode(e.target.value)} className="w-full" placeholder="xxx-xxxx-xxx" />
+          <Button type="submit" onClick={joinRoom} className="mt-2" disabled={loading}>
+            Join
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
+
+    <Link href="/dashboard" className="underline cursor-pointer">Upload documents</Link>
+
+
   </main >;
 }
