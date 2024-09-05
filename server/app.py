@@ -9,6 +9,7 @@ import datetime
 import PyPDF2
 import uuid
 from flask_cors import CORS
+import google.generativeai as genai
 
 app = Flask(__name__)
 
@@ -27,6 +28,14 @@ collection_name = "my_vectors"
 collection = chroma_client.create_collection(name=collection_name)
 
 
+chroma_client.delete_collection(name="candidate_vectors")
+collection_name = "candidate_vectors"
+collection = chroma_client.create_collection(name=collection_name)
+
+
+genai.configure(api_key="AIzaSyC8kjCHCANXkDigiNIu7GYUZSPR_V_iuHM")
+
+
 # client = OpenAI(
 #     # This is the default and can be omitted
 #     api_key="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"
@@ -37,15 +46,6 @@ client = OpenAI(
 )
 
 # Utility to extract text from a PDF file
-
-
-def extract_text_from_pdf(pdf_file):
-    pdf_reader = PyPDF2.PdfReader(pdf_file)
-    text = ''
-    for page_num in range(len(pdf_reader.pages)):
-        page = pdf_reader.pages[page_num]
-        text += page.extract_text()
-    return text
 
 
 @app.route('/add_to_chroma', methods=['POST'])
@@ -236,7 +236,7 @@ def evaluate_response():
     try:
         data = request.json
         room_id = data['room_id']
-        
+
         # Get the conversation from Redis (all previous messages in the interview)
         conversation = redis_client.get(room_id)
         if conversation is None:
@@ -244,10 +244,11 @@ def evaluate_response():
 
         # Parse the conversation (it's stored as a JSON list)
         conversation = json.loads(conversation)
-        
+
         # Assuming the interviewer questions and candidate responses are stored in the conversation
-        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
-        
+        conversation_text = "\n".join(
+            [f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+
         # Marking Schema (based on the PDF you provided)
         marking_schema = """
         Evaluate the candidate’s responses based on the following criteria:
@@ -291,7 +292,7 @@ def evaluate_response():
         # Query the LLM for evaluation
         models = client.models.list()
         model_gpt = models.data[0].id
-        
+
         response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are an expert evaluator following a scientific grading system."},
@@ -299,13 +300,12 @@ def evaluate_response():
             ],
             model=model_gpt,
         )
-        
+
         evaluation = response.choices[0].message.content.strip()
-        
+
         return jsonify({"evaluation": evaluation}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
 
 
 @app.route('/generate_questions', methods=['POST'])
@@ -313,7 +313,7 @@ def generate_questions():
     try:
         data = request.json
         room_id = data['room_id']
-        
+
         # Get the conversation from Redis
         conversation = redis_client.get(room_id)
         if conversation is None:
@@ -321,15 +321,16 @@ def generate_questions():
 
         # Parse the conversation (it's stored as a JSON list)
         conversation = json.loads(conversation)
-        
+
         # Prepare prompt for the LLM (concatenate all messages)
-        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+        conversation_text = "\n".join(
+            [f"{entry['person_name']}: {entry['text']}" for entry in conversation])
         prompt = f"Based on the following conversation, suggest three follow-up questions:\n\n{conversation_text}"
-        
+
         # Query LLM for the questions
         models = client.models.list()
         model_gpt = models.data[0].id
-        
+
         response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -337,13 +338,13 @@ def generate_questions():
             ],
             model=model_gpt,
         )
-        
+
         questions = response.choices[0].message.content.strip().split("\n")[:3]
-        
+
         return jsonify({"suggested_questions": questions}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-    
+
 
 @app.route('/check_question', methods=['POST'])
 def check_question():
@@ -351,7 +352,7 @@ def check_question():
         data = request.json
         room_id = data['room_id']
         question = data['question']
-        
+
         # Get the conversation from Redis
         conversation = redis_client.get(room_id)
         if conversation is None:
@@ -359,15 +360,16 @@ def check_question():
 
         # Parse the conversation (it's stored as a JSON list)
         conversation = json.loads(conversation)
-        
+
         # Prepare prompt for the LLM (concatenate all messages)
-        conversation_text = "\n".join([f"{entry['person_name']}: {entry['text']}" for entry in conversation])
+        conversation_text = "\n".join(
+            [f"{entry['person_name']}: {entry['text']}" for entry in conversation])
         prompt = f"The following is a conversation:\n\n{conversation_text}\n\nBased on this conversation, check if the following question is relevant, or if it deviates from the conversation context, is unnecessary, political, or inappropriate:\n\n{question}"
 
         # Query LLM for evaluation of the question
         models = client.models.list()
         model_gpt = models.data[0].id
-        
+
         response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -375,35 +377,50 @@ def check_question():
             ],
             model=model_gpt,
         )
-        
+
         # Process LLM response
         evaluation = response.choices[0].message.content.strip()
-        
+
         return jsonify({"evaluation": evaluation}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
+def extract_text_from_pdf(pdf_file):
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    text = ''
+    for page_num in range(len(pdf_reader.pages)):
+        page = pdf_reader.pages[page_num]
+        text += page.extract_text()
+    return text
 
-# Route for candidates to upload their resume (PDF), extract text, and store in ChromaDB
+
+def generate_embedding(text):
+
+    result = genai.embed_content(
+        model="models/text-embedding-004",
+        content=text,
+        output_dimensionality=10
+    )
+    return result["embedding"]
+
+
 @app.route('/upload_resume', methods=['POST'])
 def upload_resume():
     try:
-        # Ensure a PDF is provided
+
         if 'resume' not in request.files:
             return jsonify({"error": "No resume file provided."}), 400
 
-        # Extract text from the uploaded PDF file
         pdf_file = request.files['resume']
         extracted_text = extract_text_from_pdf(pdf_file)
 
-        # Generate a vector embedding for the extracted text
+        print(extracted_text)
+
         vector = generate_embedding(extracted_text)
 
-        # Generate a unique vector ID for this resume
         vector_id = str(uuid.uuid4())
 
-        # Store the vector and metadata in ChromaDB
         metadata = {"resume_text": extracted_text}
         collection.add(ids=[vector_id], embeddings=[
                        vector], metadatas=[metadata])
@@ -412,27 +429,21 @@ def upload_resume():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Route for interviewers to submit a job description and get relevant candidates from ChromaDB
-
 
 @app.route('/recommend_candidates', methods=['POST'])
 def recommend_candidates():
     try:
-        # Get the job description and number of results from the request body
+
         data = request.json
         job_description = data['job_description']
-        # Default to 5 candidates if not provided
         n_results = int(data.get('n_results', 5))
 
-        # Generate an embedding for the job description
         job_vector = generate_embedding(job_description)
 
-        # Query the ChromaDB to find the top N candidates
         job_vector = np.array(job_vector).tolist()
         results = collection.query(
             query_embeddings=[job_vector], n_results=n_results)
 
-        # Return the candidates sorted by relevancy
         return jsonify(results), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400

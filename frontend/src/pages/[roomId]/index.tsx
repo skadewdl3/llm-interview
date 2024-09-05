@@ -24,6 +24,7 @@ import MeetingControls from "@/components/MeetingControls";
 import LocalPeer from "@/components/LocalPeer";
 import { useDisplayNameStore } from "@/store/displayNameStore";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -100,20 +101,34 @@ export default function Home({ token }: Props) {
 
             {
               state == 'connected' && (
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
 
-                  <Card className="max-w-80">
-                    <CardHeader>
-                      <CardTitle>Summary</CardTitle>
-                      <CardDescription>A summary of the conversation so far.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p>{summary}</p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button onClick={getSummary}>Get Summary</Button>
-                    </CardFooter>
-                  </Card>
+                  <div>
+                    <Card className="max-w-80">
+                      <CardHeader>
+                        <CardTitle>Summary</CardTitle>
+                        <CardDescription>A summary of the conversation so far.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <p>{summary}</p>
+                      </CardContent>
+                      <CardFooter>
+                        <Button onClick={getSummary}>Get Summary</Button>
+                      </CardFooter>
+                    </Card>
+                  </div>
+
+                  <div>
+                    <Card className="max-w-80">
+                      <CardHeader>
+                        <CardTitle>Rate Candidate</CardTitle>
+                        <CardDescription>View a detailed rating of the candidates experience based on DRDO specifications.</CardDescription>
+                      </CardHeader>
+                      <CardFooter>
+                        <Link href={`/dashboard/rate_candidate/${roomId}`} target="_blank"><Button>Rate Candidate</Button></Link>
+                      </CardFooter>
+                    </Card>
+                  </div>
                 </div>
               )
             }
